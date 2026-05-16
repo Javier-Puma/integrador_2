@@ -29,7 +29,10 @@ public class pedidoController {
     ) {
         return pedidoService.actualizarPedido(id, request);
     }
-
+    @GetMapping("/mesa/{numeroMesa}")
+    public pedidoDTO obtenerPorMesa(@PathVariable Integer numeroMesa) {
+        return pedidoService.obtenerPorMesa(numeroMesa);
+    }
     // Listar pedidos filtrados por categoría (PLATILLO / BEBIDA / POSTRE)
     @GetMapping("/por-categoria")
     public List<pedidoDTO> listarPorCategoria(@RequestParam("categoria") categoria categoria) {

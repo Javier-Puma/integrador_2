@@ -1,8 +1,11 @@
 package com.integrador.payments.service;
 import com.integrador.payments.dto.CrearPagoRequest;
+import com.integrador.payments.dto.OrderItemResponse;
 import com.integrador.payments.dto.PagoDTO;
+import com.integrador.payments.dto.PedidoResponse;
 import com.integrador.payments.model.EstadoPago;
 import com.integrador.payments.model.MetodoPago;
+import com.integrador.payments.model.OrderClient;
 import com.integrador.payments.model.Pago;
 import com.integrador.payments.repository.PagoRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -10,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,18 +21,27 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PagoService {
     private final PagoRepository pagoRepository;
-
+    private final OrderClient orderClient;
     @Transactional
     public PagoDTO registrarPago(CrearPagoRequest request) {
-        // Aquí podrías validar contra el microservicio de pedidos si el pedido existe
-        // y calcular el monto correcto, etc. Por simplicidad, usamos el monto que llega.
+
+        PedidoResponse pedido=orderClient.obtenerPedidoPorMesa(request.numeroMesa());
+
+        if (pedido == null) {
+            throw new RuntimeException("Pedido no encontrado");
+        }
+
+        // calcular total
+        BigDecimal total = pedido.items().stream()
+                .map(OrderItemResponse::precio)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Pago.PagoBuilder builder = Pago.builder()
-                .pedidoId(request.pedidoId())
+                .pedidoId(pedido.id())
                 .dniCliente(request.dniCliente())
-                .monto(request.monto())
+                .monto(total)
                 .metodoPago(request.metodoPago())
-                .estadoPago(EstadoPago.APROBADO)   // asumiendo que el pago se aprueba
+                .estadoPago(EstadoPago.APROBADO)
                 .fechaPago(LocalDateTime.now());
 
         if (request.metodoPago() == MetodoPago.TARJETA) {
@@ -38,6 +51,7 @@ public class PagoService {
         }
 
         Pago pago = builder.build();
+
         Pago guardado = pagoRepository.save(pago);
 
         return toDTO(guardado);

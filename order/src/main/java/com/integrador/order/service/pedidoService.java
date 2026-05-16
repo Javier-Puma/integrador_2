@@ -81,7 +81,15 @@ public class pedidoService {
                 .map(this::toDTO)
                 .toList();
     }
+    @Transactional(readOnly = true)
+    public pedidoDTO obtenerPorMesa(Integer numeroMesa) {
 
+        pedido pedido = pedidoRepository.findByNumeroMesa(numeroMesa)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("No existe pedido para la mesa: " + numeroMesa));
+
+        return toDTO(pedido);
+    }
     @Transactional(readOnly = true)
     public List<pedidoDTO> listarPedidosPorEstado(estado estado) {
         return pedidoRepository.findByEstado(estado).stream()
